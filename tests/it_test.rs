@@ -418,6 +418,10 @@ fn test_cni_files_is_removed() {
     }
 
     // cleanup
+    if let Err(e) = delete_netns(&ns_name) {
+        warn!("Failed to delete network namespace: {e}");
+    }
+
     match cni.remove(container_id, ns_path) {
         Ok(_) => debug!("Network cleanup successful"),
         Err(e) => warn!("Network cleanup failed: {e}"),
