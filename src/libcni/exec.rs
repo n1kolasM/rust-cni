@@ -2,6 +2,7 @@
 use log::{debug, error, trace, warn};
 use serde::{Deserialize, Serialize};
 
+use crate::libcni::error::PluginError;
 use crate::libcni::result::ResultCNI;
 use crate::libcni::CNIError;
 use std::path::Path;
@@ -51,7 +52,7 @@ pub trait Exec {
         plugin_path: String,
         stdin_data: &[u8],
         environ: Vec<String>,
-    ) -> super::ResultCNI<Vec<u8>>;
+    ) -> super::ResultCNI<serde_json::Value>;
 
     fn find_in_path(&self, plugin: String, paths: Vec<String>) -> ResultCNI<String>;
 
@@ -67,7 +68,7 @@ impl Exec for RawExec {
         plugin_path: String,
         stdin_data: &[u8],
         environ: Vec<String>,
-    ) -> ResultCNI<Vec<u8>> {
+    ) -> ResultCNI<serde_json::Value> {
         debug!("Executing CNI plugin: {plugin_path}");
         trace!("CNI stdin data: {}", String::from_utf8_lossy(stdin_data));
 
@@ -131,17 +132,24 @@ impl Exec for RawExec {
         }
 
         // Check for error in stdout (CNI returns errors in JSON format)
-        if let Ok(json_value) = serde_json::from_slice::<serde_json::Value>(&output.stdout) {
-            if let Some(error_code) = json_value.get("code") {
-                if error_code.as_u64().is_some() {
-                    let msg = String::from_utf8_lossy(&output.stdout).to_string();
-                    return Err(Box::new(CNIError::ExecuteError(msg)));
+        match serde_json::from_slice::<serde_json::Value>(&output.stdout) {
+            Ok(json_value) => {
+                if json_value.get("code").and_then(|c| c.as_u64()).is_some() {
+                    match serde_json::from_value::<PluginError>(json_value) {
+                        Ok(err) => Err(Box::new(CNIError::PluginError(err))),
+                        Err(err) => Err(Box::new(CNIError::VarDecode(format!(
+                            "Failed to parse plugin error: {err}"
+                        )))),
+                    }
+                } else {
+                    debug!("CNI plugin execution successful");
+                    Ok(json_value)
                 }
             }
+            Err(err) => Err(Box::new(CNIError::VarDecode(format!(
+                "Failed to parse plugin output: {err}"
+            )))),
         }
-
-        debug!("CNI plugin execution successful");
-        Ok(output.stdout)
     }
 
     fn find_in_path(&self, plugin: String, paths: Vec<String>) -> ResultCNI<String> {

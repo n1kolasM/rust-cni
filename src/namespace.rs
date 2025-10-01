@@ -4,6 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 use crate::libcni::{
     self,
     api::{RuntimeConf, CNI},
+    result::APIResult,
 };
 
 pub struct Network {
@@ -13,7 +14,7 @@ pub struct Network {
 }
 
 impl Network {
-    pub fn attach(&self, ns: &Namespace) -> Result<(), String> {
+    pub fn attach(&self, ns: &Namespace) -> Result<Box<dyn APIResult>, String> {
         debug!(
             "Attaching network {} with interface {}",
             self.config.name, self.ifname
@@ -29,7 +30,7 @@ impl Network {
                     self.config.name
                 );
                 trace!("Network attachment result: {:?}", result.get_json());
-                Ok(())
+                Ok(result)
             }
             Err(e) => Err(e.to_string()),
         }

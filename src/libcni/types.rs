@@ -59,9 +59,7 @@ pub struct DNS {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Route {
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "dst")]
     pub dst: Option<ipnetwork::IpNetwork>,
-    #[serde(rename = "gw")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gw: Option<std::net::IpAddr>,
 }

@@ -483,30 +483,31 @@ impl CNI for CNIConfig {
         }
 
         // Execute plugin
-        let result_bytes =
+        let mut result_value =
             self.exec
                 .exec_plugins(plugin_path, &new_conf.bytes, environ.to_env())?;
 
+        // Ensure CNI version is set
+        if let Some(obj) = result_value.as_object_mut() {
+            if !obj.contains_key("cniVersion") {
+                obj.insert("cniVersion".to_string(), "1.0.0".into());
+            }
+        }
         // Directly deserialize the result JSON into the result structure
-        let mut result: result100::Result = match serde_json::from_slice(&result_bytes) {
+        let result: Box<dyn APIResult> = match serde_json::from_value(result_value) {
             Ok(r) => r,
             Err(e) => {
                 // If direct deserialization fails, create a default result with minimal information
                 debug!("Failed to directly deserialize result: {e}, creating minimal result",);
-                result100::Result {
+                Box::new(result100::Result {
                     cni_version: Some(cni_version.clone()),
                     ..Default::default()
-                }
+                })
             }
         };
 
-        // Ensure CNI version is set
-        if result.cni_version.is_none() {
-            result.cni_version = Some(cni_version);
-        }
-
         debug!("Successfully added network {name}");
-        Ok(Box::new(result))
+        Ok(result)
     }
 
     fn check_network(
@@ -686,39 +687,28 @@ impl CNI for CNIConfig {
 
         // Execute plugin with VERSION command
         match self.exec.exec_plugins(plugin_path, &[], environ.to_env()) {
-            Ok(version_bytes) => {
-                // Parse version info
-                match serde_json::from_slice::<serde_json::Value>(&version_bytes) {
-                    Ok(version_info) => {
-                        if let Some(supported_versions) = version_info.get("supportedVersions") {
-                            if let Some(versions_array) = supported_versions.as_array() {
-                                let versions: Vec<String> = versions_array
-                                    .iter()
-                                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                                    .collect();
+            Ok(version_value) => {
+                if let Some(supported_versions) = version_value.get("supportedVersions") {
+                    if let Some(versions_array) = supported_versions.as_array() {
+                        let versions: Vec<String> = versions_array
+                            .iter()
+                            .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                            .collect();
 
-                                debug!(
-                                    "Plugin {} supports versions: {versions:?}",
-                                    net.network._type
-                                );
-                                return Ok(versions);
-                            }
-                        }
-
-                        warn!(
-                            "Plugin {} did not return supported versions",
+                        debug!(
+                            "Plugin {} supports versions: {versions:?}",
                             net.network._type
                         );
-                        Ok(vec![])
-                    }
-                    Err(e) => {
-                        warn!(
-                            "Failed to parse version info from plugin {}: {e}",
-                            net.network._type
-                        );
-                        Ok(vec![])
+                        return Ok(versions);
                     }
                 }
+
+                warn!(
+                    "Plugin {} did not return supported versions",
+                    net.network._type
+                );
+                Ok(vec![])
+                // Parse version info
             }
             Err(e) => {
                 warn!(

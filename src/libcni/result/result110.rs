@@ -9,7 +9,7 @@ use crate::libcni::CNIError;
 
 use super::APIResult;
 
-// const IMPLEMENTED_SPEC_VERSION: &'static str = "1.0.0";
+// const IMPLEMENTED_SPEC_VERSION: &'static str = "1.1.0";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Interface {
@@ -19,19 +19,30 @@ pub struct Interface {
     pub mac: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sandbox: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mtu: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "socketPath")]
+    pub socket_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "pciID")]
+    pub pci_id: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct IPConfig {
-    #[serde(rename = "interface")]
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Route {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub interface: Option<usize>,
-    #[serde(rename = "address")]
+    pub dst: Option<ipnetwork::IpNetwork>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub address: Option<ipnetwork::IpNetwork>,
-    #[serde(rename = "gateway")]
+    pub gw: Option<std::net::IpAddr>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub gateway: Option<std::net::IpAddr>,
+    pub mtu: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub advmss: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub priority: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub table: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
@@ -42,14 +53,14 @@ pub struct Result {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub interfaces: Option<Vec<Interface>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ips: Option<Vec<IPConfig>>,
+    pub ips: Option<Vec<super::result100::IPConfig>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub routes: Option<Vec<crate::libcni::types::Route>>,
+    pub routes: Option<Vec<Route>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dns: Option<crate::libcni::types::DNS>,
 }
 
-#[typetag::serde(name = "1.0.0")]
+#[typetag::serde(name = "1.1.0")]
 impl APIResult for Result {
     fn version(&self) -> String {
         if let Some(cni_version) = &self.cni_version {

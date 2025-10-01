@@ -2,10 +2,11 @@
 use json::JsonValue;
 
 pub mod result100;
+pub mod result110;
 
 pub type ResultCNI<T> = std::result::Result<T, Box<super::error::CNIError>>;
 
-#[typetag::serde(tag = "type")]
+#[typetag::serde(tag = "cniVersion")]
 pub trait APIResult {
     fn version(&self) -> String;
     fn get_as_version(&self, version: String) -> ResultCNI<Box<dyn APIResult>>;
