@@ -67,7 +67,7 @@ impl Libcni {
                 let mut cnt = 0;
 
                 for configfile in config_files {
-                    debug!("Processing CNI config file: {}", configfile);
+                    debug!("Processing CNI config file: {configfile}");
                     // Do not load more than plugin_max_conf_num
                     if cnt >= self.config.plugin_max_conf_num {
                         break;
@@ -82,7 +82,7 @@ impl Libcni {
                                     ifname: self.config.prefix.clone() + &cnt.to_string(),
                                 });
                             }
-                            None => error!("Failed to read config list file: {}", configfile),
+                            None => error!("Failed to read config list file: {configfile}"),
                         }
                     } else if configfile.ends_with(".conf") || configfile.ends_with(".json") {
                         match libcni::conf::ConfigFile::read_config_file(configfile.clone()) {
@@ -97,7 +97,7 @@ impl Libcni {
                                     ifname: self.config.prefix.clone() + &cnt.to_string(),
                                 });
                             }
-                            None => error!("Failed to read config file: {}", configfile),
+                            None => error!("Failed to read config file: {configfile}"),
                         }
                     }
                     cnt += 1;
@@ -108,7 +108,7 @@ impl Libcni {
                 debug!("Loaded {} CNI networks", self.network_count);
             }
             Err(e) => {
-                error!("Failed to read CNI config files: {}", e);
+                error!("Failed to read CNI config files: {e}");
             }
         }
     }
@@ -187,8 +187,8 @@ impl Libcni {
                 Ok(())
             }
             Err(e) => {
-                error!("Failed to add loopback network: {}", e);
-                Err(format!("Can't add lo network: {}", e))
+                error!("Failed to add loopback network: {e}");
+                Err(format!("Can't add lo network: {e}"))
             }
         }
     }
@@ -214,7 +214,7 @@ impl Libcni {
     }
 
     pub fn setup(&self, id: String, path: String) -> Result<(), String> {
-        debug!("Setting up networks for container: {}", id);
+        debug!("Setting up networks for container: {id}");
 
         // Check status
         self.status()?;
@@ -225,12 +225,12 @@ impl Libcni {
         // Attach networks
         self.attach_networks(&namespace)?;
 
-        debug!("Networks setup completed for container: {}", id);
+        debug!("Networks setup completed for container: {id}");
         Ok(())
     }
 
     pub fn remove(&self, id: String, path: String) -> Result<(), String> {
-        debug!("Removing networks for container: {}", id);
+        debug!("Removing networks for container: {id}");
 
         // Check status
         self.status()?;
@@ -242,11 +242,11 @@ impl Libcni {
         let mut errors = Vec::new();
         for net in &self.networks {
             match net.remove(&namespace) {
-                Ok(_) => debug!("Removed network {} for container {}", net.config.name, id),
+                Ok(_) => debug!("Removed network {} for container {id}", net.config.name),
                 Err(e) => {
                     let err_msg = format!(
-                        "Failed to remove network {} for container {}: {}",
-                        net.config.name, id, e
+                        "Failed to remove network {} for container {id}: {e}",
+                        net.config.name
                     );
                     errors.push(err_msg);
                 }
@@ -257,12 +257,12 @@ impl Libcni {
             return Err(errors.join("; "));
         }
 
-        debug!("Networks removal completed for container: {}", id);
+        debug!("Networks removal completed for container: {id}");
         Ok(())
     }
 
     pub fn check(&self, id: String, path: String) -> Result<(), String> {
-        debug!("Checking networks for container: {}", id);
+        debug!("Checking networks for container: {id}");
 
         // Check status
         self.status()?;
@@ -275,13 +275,13 @@ impl Libcni {
         for net in &self.networks {
             match net.check(&namespace) {
                 Ok(_) => debug!(
-                    "Network {} is correctly configured for container {}",
-                    net.config.name, id
+                    "Network {} is correctly configured for container {id}",
+                    net.config.name
                 ),
                 Err(e) => {
                     let err_msg = format!(
-                        "Network {} check failed for container {}: {}",
-                        net.config.name, id, e
+                        "Network {} check failed for container {id}: {e}",
+                        net.config.name
                     );
                     errors.push(err_msg);
                 }
@@ -291,7 +291,7 @@ impl Libcni {
         if !errors.is_empty() {
             return Err(errors.join("; "));
         }
-        debug!("Networks check completed for container: {}", id);
+        debug!("Networks check completed for container: {id}");
         Ok(())
     }
 
@@ -303,8 +303,8 @@ impl Libcni {
             match net.attach(ns) {
                 Ok(_) => debug!("Attached network {} successfully", net.config.name),
                 Err(e) => {
-                    let err_msg = format!("Failed to attach network {} : {}", net.config.name, e);
-                    error!("{}", err_msg);
+                    let err_msg = format!("Failed to attach network {} : {e}", net.config.name);
+                    error!("{err_msg}");
                     errors.push(err_msg);
                 }
             }

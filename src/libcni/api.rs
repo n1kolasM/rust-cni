@@ -115,7 +115,7 @@ impl RuntimeConf {
             &self.container_id
         };
 
-        format!("{}-{}", id_part, self.if_name)
+        format!("{id_part}-{}", self.if_name)
     }
 }
 
@@ -137,7 +137,7 @@ impl CNIConfig {
         let path = Path::new(&cache_dir).join(netname);
         if !path.exists() {
             if let Err(e) = std::fs::create_dir_all(&path) {
-                warn!("Failed to create cache directory {}: {}", path.display(), e);
+                warn!("Failed to create cache directory {}: {e}", path.display());
             }
         }
         path
@@ -151,7 +151,7 @@ impl CNIConfig {
     ) -> ResultCNI<()> {
         let cache_dir = self.get_cache_dir(network_name);
         let key = rt.get_cache_key();
-        let config_path = cache_dir.join(format!("{}.config", key));
+        let config_path = cache_dir.join(format!("{key}.config"));
 
         debug!("Caching network config to {}", config_path.display());
 
@@ -172,7 +172,7 @@ impl CNIConfig {
     ) -> ResultCNI<()> {
         let cache_dir = self.get_cache_dir(network_name);
         let key = rt.get_cache_key();
-        let result_path = cache_dir.join(format!("{}.result", key));
+        let result_path = cache_dir.join(format!("{key}.result"));
 
         debug!("Caching network result to {}", result_path.display());
 
@@ -194,11 +194,11 @@ impl CNIConfig {
         netname: &str,
         rt: &RuntimeConf,
     ) -> Result<(Box<dyn APIResult>, Vec<u8>, RuntimeConf), String> {
-        debug!("Reading cached network {} config", netname);
+        debug!("Reading cached network {netname} config");
         let cache_dir = self.get_cache_dir(netname);
         let key = rt.get_cache_key();
-        let result_path = cache_dir.join(format!("{}.result", key));
-        let config_path = cache_dir.join(format!("{}.config", key));
+        let result_path = cache_dir.join(format!("{key}.result"));
+        let config_path = cache_dir.join(format!("{key}.config"));
 
         if !result_path.exists() || !config_path.exists() {
             return Err("Cache files do not exist".to_string());
@@ -210,7 +210,7 @@ impl CNIConfig {
 
         // Parse result
         let _: serde_json::Value = serde_json::from_slice(&result_bytes)
-            .map_err(|e| format!("Failed to parse result cache: {}", e))?;
+            .map_err(|e| format!("Failed to parse result cache: {e}"))?;
 
         // Create result object
         let result = result100::Result {
@@ -237,20 +237,20 @@ impl CNIConfig {
         prev_result: Option<Box<dyn APIResult>>,
         _rt: &RuntimeConf,
     ) -> Result<NetworkConfig, String> {
-        debug!("Building new network config for {}", name);
+        debug!("Building new network config for {name}");
 
         let mut json_object = match json::parse(String::from_utf8_lossy(&orig.bytes).as_ref()) {
             Ok(obj) => obj,
-            Err(e) => return Err(format!("Failed to parse network config: {}", e)),
+            Err(e) => return Err(format!("Failed to parse network config: {e}")),
         };
 
         // Insert required fields
         if let Err(e) = json_object.insert("name", name) {
-            return Err(format!("Failed to insert name: {}", e));
+            return Err(format!("Failed to insert name: {e}"));
         }
 
         if let Err(e) = json_object.insert("cniVersion", cni_version) {
-            return Err(format!("Failed to insert cniVersion: {}", e));
+            return Err(format!("Failed to insert cniVersion: {e}"));
         }
 
         // Insert previous result (if provided)
@@ -258,7 +258,7 @@ impl CNIConfig {
             let prev_json = prev_result.get_json();
             debug!("Adding prevResult to config: {}", prev_json.dump());
             if let Err(e) = json_object.insert("prevResult", prev_json) {
-                return Err(format!("Failed to insert prevResult: {}", e));
+                return Err(format!("Failed to insert prevResult: {e}"));
             }
         }
 
@@ -311,7 +311,7 @@ impl CNI for CNIConfig {
         // Cache the final result
         if let Some(result) = &prev_result {
             if let Err(e) = self.cache_network_result(&net.name, &rt, result.as_ref()) {
-                warn!("Failed to cache network result: {}", e);
+                warn!("Failed to cache network result: {e}");
             }
         }
 
@@ -334,7 +334,7 @@ impl CNI for CNIConfig {
         let (prev_result, _, _) = match self.read_cached_network(&net.name, &rt) {
             Ok(data) => data,
             Err(e) => {
-                warn!("No cached result found for network {}: {}", net.name, e);
+                warn!("No cached result found for network {}: {e}", net.name);
                 (
                     Box::<result100::Result>::default() as Box<dyn APIResult>,
                     Vec::new(),
@@ -385,7 +385,7 @@ impl CNI for CNIConfig {
                 plugin.clone(),
                 rt.clone(),
             ) {
-                error!("Error deleting plugin {}: {}", plugin.network._type, e);
+                error!("Error deleting plugin {}: {e}", plugin.network._type);
                 // Continue with next plugin even if one fails
             }
         }
@@ -393,20 +393,20 @@ impl CNI for CNIConfig {
         // Clean up cached data
         let cache_dir = self.get_cache_dir(&net.name);
         let key = rt.get_cache_key();
-        let result_path = cache_dir.join(format!("{}.result", key));
-        let config_path = cache_dir.join(format!("{}.config", key));
+        let result_path = cache_dir.join(format!("{key}.result"));
+        let config_path = cache_dir.join(format!("{key}.config"));
 
         if result_path.exists() {
             debug!("Removing cached result: {}", result_path.display());
             if let Err(e) = fs::remove_file(&result_path) {
-                warn!("Failed to remove cached result: {}", e);
+                warn!("Failed to remove cached result: {e}");
             }
         }
 
         if config_path.exists() {
             debug!("Removing cached config: {}", config_path.display());
             if let Err(e) = fs::remove_file(&config_path) {
-                warn!("Failed to remove cached config: {}", e);
+                warn!("Failed to remove cached config: {e}");
             }
         }
 
@@ -427,8 +427,8 @@ impl CNI for CNIConfig {
                 Ok(result)
             }
             Err(e) => {
-                let err_msg = format!("No cached result for network {}: {}", net.name, e);
-                error!("{}", err_msg);
+                let err_msg = format!("No cached result for network {}: {e}", net.name);
+                error!("{err_msg}");
                 Err(Box::new(CNIError::NotFound(net.name, err_msg)))
             }
         }
@@ -442,7 +442,7 @@ impl CNI for CNIConfig {
         prev_result: Option<Box<dyn APIResult>>,
         rt: RuntimeConf,
     ) -> ResultCNI<Box<dyn APIResult>> {
-        debug!("Adding network {} with plugin {}", name, net.network._type);
+        debug!("Adding network {name} with plugin {}", net.network._type);
 
         // Find plugin path
         let plugin_path = self
@@ -479,7 +479,7 @@ impl CNI for CNIConfig {
 
         // Cache network config
         if let Err(e) = self.cache_network_config(&name, &rt, &new_conf.bytes) {
-            warn!("Failed to cache network config: {}", e);
+            warn!("Failed to cache network config: {e}");
         }
 
         // Execute plugin
@@ -492,10 +492,7 @@ impl CNI for CNIConfig {
             Ok(r) => r,
             Err(e) => {
                 // If direct deserialization fails, create a default result with minimal information
-                debug!(
-                    "Failed to directly deserialize result: {}, creating minimal result",
-                    e
-                );
+                debug!("Failed to directly deserialize result: {e}, creating minimal result",);
                 result100::Result {
                     cni_version: Some(cni_version.clone()),
                     ..Default::default()
@@ -508,7 +505,7 @@ impl CNI for CNIConfig {
             result.cni_version = Some(cni_version);
         }
 
-        debug!("Successfully added network {}", name);
+        debug!("Successfully added network {name}");
         Ok(Box::new(result))
     }
 
@@ -520,10 +517,7 @@ impl CNI for CNIConfig {
         net: NetworkConfig,
         rt: RuntimeConf,
     ) -> ResultCNI<()> {
-        debug!(
-            "Checking network {} with plugin {}",
-            name, net.network._type
-        );
+        debug!("Checking network {name} with plugin {}", net.network._type);
 
         // Find plugin in path
         let plugin_path = self
@@ -557,7 +551,7 @@ impl CNI for CNIConfig {
         self.exec
             .exec_plugins(plugin_path, &new_conf.bytes, environ.to_env())?;
 
-        debug!("Network check passed for {}", name);
+        debug!("Network check passed for {name}");
         Ok(())
     }
 
@@ -568,10 +562,7 @@ impl CNI for CNIConfig {
         net: NetworkConfig,
         rt: RuntimeConf,
     ) -> ResultCNI<()> {
-        debug!(
-            "Deleting network {} with plugin {}",
-            name, net.network._type
-        );
+        debug!("Deleting network {name} with plugin {}", net.network._type);
 
         // Find plugin in path
         let plugin_path = self
@@ -604,7 +595,7 @@ impl CNI for CNIConfig {
         self.exec
             .exec_plugins(plugin_path, &new_conf.bytes, environ.to_env())?;
 
-        debug!("Successfully deleted network {}", name);
+        debug!("Successfully deleted network {name}");
         Ok(())
     }
 
@@ -621,8 +612,8 @@ impl CNI for CNIConfig {
                 Ok(result)
             }
             Err(e) => {
-                let err_msg = format!("No cached result for network {}: {}", net.network.name, e);
-                error!("{}", err_msg);
+                let err_msg = format!("No cached result for network {}: {e}", net.network.name);
+                error!("{err_msg}");
                 Err(Box::new(CNIError::NotFound(net.network.name, err_msg)))
             }
         }
@@ -641,8 +632,8 @@ impl CNI for CNIConfig {
                 Ok((config_bytes, cached_rt))
             }
             Err(e) => {
-                let err_msg = format!("No cached config for network {}: {}", net.network.name, e);
-                error!("{}", err_msg);
+                let err_msg = format!("No cached config for network {}: {e}", net.network.name);
+                error!("{err_msg}");
                 Err(Box::new(CNIError::NotFound(net.network.name, err_msg)))
             }
         }
@@ -707,8 +698,8 @@ impl CNI for CNIConfig {
                                     .collect();
 
                                 debug!(
-                                    "Plugin {} supports versions: {:?}",
-                                    net.network._type, versions
+                                    "Plugin {} supports versions: {versions:?}",
+                                    net.network._type
                                 );
                                 return Ok(versions);
                             }
@@ -722,8 +713,8 @@ impl CNI for CNIConfig {
                     }
                     Err(e) => {
                         warn!(
-                            "Failed to parse version info from plugin {}: {}",
-                            net.network._type, e
+                            "Failed to parse version info from plugin {}: {e}",
+                            net.network._type
                         );
                         Ok(vec![])
                     }
@@ -731,8 +722,8 @@ impl CNI for CNIConfig {
             }
             Err(e) => {
                 warn!(
-                    "Failed to get version info from plugin {}: {}",
-                    net.network._type, e
+                    "Failed to get version info from plugin {}: {e}",
+                    net.network._type
                 );
                 Ok(vec![])
             }

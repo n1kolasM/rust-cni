@@ -72,21 +72,21 @@ fn setup_test_environment(cnf: &str) -> std::io::Result<String> {
     let test_dir = format!("/tmp/cni-test-{}", uuid::Uuid::new_v4());
     fs::create_dir_all(&test_dir)?;
     if cnf.contains("plugins") {
-        let config_path = format!("{}/10-test-network.conflist", test_dir);
+        let config_path = format!("{test_dir}/10-test-network.conflist");
         fs::write(&config_path, cnf)?;
     } else {
-        let config_path = format!("{}/10-test-network.conf", test_dir);
+        let config_path = format!("{test_dir}/10-test-network.conf");
         fs::write(&config_path, cnf)?;
     }
 
-    info!("Created test environment at {}", test_dir);
+    info!("Created test environment at {test_dir}");
     Ok(test_dir)
 }
 
 // test helper function
 fn cleanup_test_environment(dir: &str) -> std::io::Result<()> {
     fs::remove_dir_all(dir)?;
-    info!("Cleaned up test environment at {}", dir);
+    info!("Cleaned up test environment at {dir}");
     Ok(())
 }
 
@@ -95,14 +95,14 @@ fn create_netns(name: &str) -> Result<String, String> {
     // ensure netns dir exists
     let netns_dir = "/var/run/netns";
     if !Path::new(netns_dir).exists() {
-        fs::create_dir_all(netns_dir).map_err(|e| format!("Failed to create netns dir: {}", e))?;
+        fs::create_dir_all(netns_dir).map_err(|e| format!("Failed to create netns dir: {e}"))?;
     }
 
     // create netns
     let output = Command::new("ip")
-        .args(&["netns", "add", name])
+        .args(["netns", "add", name])
         .output()
-        .map_err(|e| format!("Failed to create netns: {}", e))?;
+        .map_err(|e| format!("Failed to create netns: {e}"))?;
 
     if !output.status.success() {
         return Err(format!(
@@ -111,17 +111,17 @@ fn create_netns(name: &str) -> Result<String, String> {
         ));
     }
 
-    let path = format!("/var/run/netns/{}", name);
-    info!("Created network namespace {} at {}", name, path);
+    let path = format!("/var/run/netns/{name}");
+    info!("Created network namespace {name} at {path}");
     Ok(path)
 }
 
 // test helper function
 fn delete_netns(name: &str) -> Result<(), String> {
     let output = Command::new("ip")
-        .args(&["netns", "delete", name])
+        .args(["netns", "delete", name])
         .output()
-        .map_err(|e| format!("Failed to delete netns: {}", e))?;
+        .map_err(|e| format!("Failed to delete netns: {e}"))?;
 
     if !output.status.success() {
         return Err(format!(
@@ -130,7 +130,7 @@ fn delete_netns(name: &str) -> Result<(), String> {
         ));
     }
 
-    info!("Deleted network namespace {}", name);
+    info!("Deleted network namespace {name}");
     Ok(())
 }
 
@@ -145,7 +145,7 @@ fn test_cni_initialization() {
     let test_dir = match setup_test_environment(TEST_NETWORK_CONF) {
         Ok(dir) => dir,
         Err(e) => {
-            error!("Failed to setup test environment: {}", e);
+            error!("Failed to setup test environment: {e}");
             panic!("Test setup failed");
         }
     };
@@ -176,7 +176,7 @@ fn test_cni_initialization() {
 
     // cleanup test environment
     if let Err(e) = cleanup_test_environment(&test_dir) {
-        warn!("Failed to cleanup test environment: {}", e);
+        warn!("Failed to cleanup test environment: {e}");
     }
 }
 
@@ -190,7 +190,7 @@ fn test_network_lifecycle() {
     let test_dir = match setup_test_environment(TEST_NETWORK_CONF) {
         Ok(dir) => dir,
         Err(e) => {
-            error!("Failed to setup test environment: {}", e);
+            error!("Failed to setup test environment: {e}");
             panic!("Test setup failed");
         }
     };
@@ -199,7 +199,7 @@ fn test_network_lifecycle() {
     let ns_path = match create_netns(&ns_name) {
         Ok(path) => path,
         Err(e) => {
-            error!("Failed to create network namespace: {}", e);
+            error!("Failed to create network namespace: {e}");
             cleanup_test_environment(&test_dir).unwrap_or_default();
             panic!("Failed to create netns");
         }
@@ -220,7 +220,7 @@ fn test_network_lifecycle() {
     match cni.setup(container_id.clone(), ns_path.clone()) {
         Ok(_) => info!("Network setup successful"),
         Err(e) => {
-            error!("Network setup failed: {}", e);
+            error!("Network setup failed: {e}");
             delete_netns(&ns_name).unwrap_or_default();
             cleanup_test_environment(&test_dir).unwrap_or_default();
             panic!("Network setup failed");
@@ -249,7 +249,7 @@ fn test_network_lifecycle() {
     match cni.remove(container_id.clone(), ns_path.clone()) {
         Ok(_) => info!("Network removal successful"),
         Err(e) => {
-            error!("Network removal failed: {}", e);
+            error!("Network removal failed: {e}");
             delete_netns(&ns_name).unwrap_or_default();
             cleanup_test_environment(&test_dir).unwrap_or_default();
             panic!("Network removal failed");
@@ -258,11 +258,11 @@ fn test_network_lifecycle() {
 
     // cleanup
     if let Err(e) = delete_netns(&ns_name) {
-        warn!("Failed to delete network namespace: {}", e);
+        warn!("Failed to delete network namespace: {e}");
     }
 
     if let Err(e) = cleanup_test_environment(&test_dir) {
-        warn!("Failed to cleanup test environment: {}", e);
+        warn!("Failed to cleanup test environment: {e}");
     }
 
     info!("Network lifecycle test completed successfully");
@@ -303,7 +303,7 @@ fn test_custom_network_config() {
     let test_dir = match setup_test_environment(TEST_NETWORK_CONF) {
         Ok(dir) => dir,
         Err(e) => {
-            error!("Failed to setup test environment: {}", e);
+            error!("Failed to setup test environment: {e}");
             panic!("Test setup failed");
         }
     };
@@ -313,7 +313,7 @@ fn test_custom_network_config() {
     let ns_path = match create_netns(&ns_name) {
         Ok(path) => path,
         Err(e) => {
-            error!("Failed to create network namespace: {}", e);
+            error!("Failed to create network namespace: {e}");
             cleanup_test_environment(&test_dir).unwrap_or_default();
             panic!("Failed to create netns");
         }
@@ -333,7 +333,7 @@ fn test_custom_network_config() {
     match cni.add_lo_network() {
         Ok(_) => info!("Added loopback network"),
         Err(e) => {
-            error!("Failed to add loopback network: {}", e);
+            error!("Failed to add loopback network: {e}");
             delete_netns(&ns_name).unwrap_or_default();
             cleanup_test_environment(&test_dir).unwrap_or_default();
             panic!("Failed to add loopback network");
@@ -347,7 +347,7 @@ fn test_custom_network_config() {
     match cni.setup(container_id.clone(), ns_path.clone()) {
         Ok(_) => info!("Network setup with loopback successful"),
         Err(e) => {
-            error!("Network setup failed: {}", e);
+            error!("Network setup failed: {e}");
             delete_netns(&ns_name).unwrap_or_default();
             cleanup_test_environment(&test_dir).unwrap_or_default();
             panic!("Network setup failed");
@@ -357,15 +357,15 @@ fn test_custom_network_config() {
     // cleanup
     match cni.remove(container_id, ns_path) {
         Ok(_) => debug!("Network cleanup successful"),
-        Err(e) => warn!("Network cleanup failed: {}", e),
+        Err(e) => warn!("Network cleanup failed: {e}"),
     }
 
     if let Err(e) = delete_netns(&ns_name) {
-        warn!("Failed to delete network namespace: {}", e);
+        warn!("Failed to delete network namespace: {e}");
     }
 
     if let Err(e) = cleanup_test_environment(&test_dir) {
-        warn!("Failed to cleanup test environment: {}", e);
+        warn!("Failed to cleanup test environment: {e}");
     }
 
     debug!("Custom network config test completed successfully");
@@ -381,7 +381,7 @@ fn test_cni_files_is_removed() {
     let test_dir = match setup_test_environment(TEST_NETWORK_CONF) {
         Ok(dir) => dir,
         Err(e) => {
-            error!("Failed to setup test environment: {}", e);
+            error!("Failed to setup test environment: {e}");
             panic!("Test setup failed");
         }
     };
@@ -390,7 +390,7 @@ fn test_cni_files_is_removed() {
     let ns_path = match create_netns(&ns_name) {
         Ok(path) => path,
         Err(e) => {
-            error!("Failed to create network namespace: {}", e);
+            error!("Failed to create network namespace: {e}");
             cleanup_test_environment(&test_dir).unwrap_or_default();
             panic!("Failed to create netns");
         }
@@ -410,7 +410,7 @@ fn test_cni_files_is_removed() {
     match cni.setup(container_id.clone(), ns_path.clone()) {
         Ok(_) => info!("Network setup successful"),
         Err(e) => {
-            error!("Network setup failed: {}", e);
+            error!("Network setup failed: {e}");
             delete_netns(&ns_name).unwrap_or_default();
             cleanup_test_environment(&test_dir).unwrap_or_default();
             panic!("Network setup failed");
@@ -420,7 +420,7 @@ fn test_cni_files_is_removed() {
     // cleanup
     match cni.remove(container_id, ns_path) {
         Ok(_) => debug!("Network cleanup successful"),
-        Err(e) => warn!("Network cleanup failed: {}", e),
+        Err(e) => warn!("Network cleanup failed: {e}"),
     }
 
     // check if cache is removed
@@ -459,7 +459,7 @@ fn test_custom_network_config_with_plugins() {
     let test_dir = match setup_test_environment(TEST_NETWORK_CONF_2) {
         Ok(dir) => dir,
         Err(e) => {
-            error!("Failed to setup test environment: {}", e);
+            error!("Failed to setup test environment: {e}");
             panic!("Test setup failed");
         }
     };
@@ -469,7 +469,7 @@ fn test_custom_network_config_with_plugins() {
     let ns_path = match create_netns(&ns_name) {
         Ok(path) => path,
         Err(e) => {
-            error!("Failed to create network namespace: {}", e);
+            error!("Failed to create network namespace: {e}");
             cleanup_test_environment(&test_dir).unwrap_or_default();
             panic!("Failed to create netns");
         }
@@ -487,7 +487,7 @@ fn test_custom_network_config_with_plugins() {
     match cni.add_lo_network() {
         Ok(_) => info!("Added loopback network"),
         Err(e) => {
-            error!("Failed to add loopback network: {}", e);
+            error!("Failed to add loopback network: {e}");
             delete_netns(&ns_name).unwrap_or_default();
             cleanup_test_environment(&test_dir).unwrap_or_default();
             panic!("Failed to add loopback network");
@@ -500,26 +500,26 @@ fn test_custom_network_config_with_plugins() {
     match cni.setup(container_id.clone(), ns_path.clone()) {
         Ok(_) => info!("Network setup with multiple plugins successful"),
         Err(e) => {
-            error!("Network setup failed: {}", e);
+            error!("Network setup failed: {e}");
             delete_netns(&ns_name).unwrap_or_default();
             cleanup_test_environment(&test_dir).unwrap_or_default();
-            panic!("Network setup failed: {}", e);
+            panic!("Network setup failed: {e}");
         }
     }
 
     // cleanup network
     match cni.remove(container_id, ns_path) {
         Ok(_) => debug!("Network cleanup successful"),
-        Err(e) => warn!("Network cleanup failed: {}", e),
+        Err(e) => warn!("Network cleanup failed: {e}"),
     }
 
     // cleanup resources
     if let Err(e) = delete_netns(&ns_name) {
-        warn!("Failed to delete network namespace: {}", e);
+        warn!("Failed to delete network namespace: {e}");
     }
 
     if let Err(e) = cleanup_test_environment(&test_dir) {
-        warn!("Failed to cleanup test environment: {}", e);
+        warn!("Failed to cleanup test environment: {e}");
     }
 
     info!("Custom network config test with multiple plugins completed successfully");

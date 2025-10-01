@@ -53,8 +53,8 @@ impl Network {
                 Ok(())
             }
             Err(e) => {
-                let err_msg = format!("Failed to remove network {}: {}", self.config.name, e);
-                error!("{}", err_msg);
+                let err_msg = format!("Failed to remove network {}: {e}", self.config.name);
+                error!("{err_msg}");
                 Err(err_msg)
             }
         }
@@ -75,8 +75,8 @@ impl Network {
                 Ok(())
             }
             Err(e) => {
-                let err_msg = format!("Network check failed for {}: {}", self.config.name, e);
-                error!("{}", err_msg);
+                let err_msg = format!("Network check failed for {}: {e}", self.config.name);
+                error!("{err_msg}");
                 Err(err_msg)
             }
         }
@@ -94,15 +94,12 @@ impl Network {
         {
             Ok(result) => {
                 let stats_json = result.get_json().dump();
-                debug!("Network stats: {}", stats_json);
+                debug!("Network stats: {stats_json}");
                 Ok(stats_json)
             }
             Err(e) => {
-                let err_msg = format!(
-                    "Failed to get stats for network {}: {}",
-                    self.config.name, e
-                );
-                error!("{}", err_msg);
+                let err_msg = format!("Failed to get stats for network {}: {e}", self.config.name);
+                error!("{err_msg}");
                 Err(err_msg)
             }
         }
@@ -119,10 +116,7 @@ pub struct Namespace {
 
 impl Namespace {
     pub fn new(id: String, path: String) -> Self {
-        debug!(
-            "Creating new namespace for container {} at path {}",
-            id, path
-        );
+        debug!("Creating new namespace for container {id} at path {path}",);
         Self {
             id,
             path,
@@ -144,21 +138,18 @@ impl Namespace {
     }
 
     pub fn add_arg(&mut self, key: &str, value: &str) {
-        debug!("Adding argument {}={} to namespace", key, value);
+        debug!("Adding argument {key}={value} to namespace");
         self.args.insert(key.to_string(), value.to_string());
     }
 
     pub fn add_capability(&mut self, key: &str, value: &str) {
-        debug!("Adding capability {}={} to namespace", key, value);
+        debug!("Adding capability {key}={value} to namespace");
         self.capability_args
             .insert(key.to_string(), value.to_string());
     }
 
     pub fn config(&self, ifname: String) -> libcni::api::RuntimeConf {
-        debug!(
-            "Creating runtime config for namespace with interface {}",
-            ifname
-        );
+        debug!("Creating runtime config for namespace with interface {ifname}");
         let args = self
             .args
             .iter()
