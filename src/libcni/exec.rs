@@ -52,7 +52,7 @@ pub trait Exec {
         plugin_path: String,
         stdin_data: &[u8],
         environ: Vec<String>,
-    ) -> super::ResultCNI<serde_json::Value>;
+    ) -> super::ResultCNI<Option<serde_json::Value>>;
 
     fn find_in_path(&self, plugin: String, paths: Vec<String>) -> ResultCNI<String>;
 
@@ -68,7 +68,7 @@ impl Exec for RawExec {
         plugin_path: String,
         stdin_data: &[u8],
         environ: Vec<String>,
-    ) -> ResultCNI<serde_json::Value> {
+    ) -> ResultCNI<Option<serde_json::Value>> {
         debug!("Executing CNI plugin: {plugin_path}");
         trace!("CNI stdin data: {}", String::from_utf8_lossy(stdin_data));
 
@@ -131,6 +131,9 @@ impl Exec for RawExec {
             warn!("CNI plugin stderr: {stderr}");
         }
 
+        if output.stdout.is_empty() && output.status.success() {
+            return Ok(None);
+        }
         // Check for error in stdout (CNI returns errors in JSON format)
         match serde_json::from_slice::<serde_json::Value>(&output.stdout) {
             Ok(json_value) => {
@@ -143,7 +146,7 @@ impl Exec for RawExec {
                     }
                 } else {
                     debug!("CNI plugin execution successful");
-                    Ok(json_value)
+                    Ok(Some(json_value))
                 }
             }
             Err(err) => Err(Box::new(CNIError::VarDecode(format!(

@@ -483,9 +483,12 @@ impl CNI for CNIConfig {
         }
 
         // Execute plugin
-        let mut result_value =
-            self.exec
-                .exec_plugins(plugin_path, &new_conf.bytes, environ.to_env())?;
+        let mut result_value = self
+            .exec
+            .exec_plugins(plugin_path, &new_conf.bytes, environ.to_env())?
+            .ok_or(CNIError::ExecuteError(
+                "got empty result from ADD command".to_string(),
+            ))?;
 
         // Ensure CNI version is set
         if let Some(obj) = result_value.as_object_mut() {
@@ -686,7 +689,14 @@ impl CNI for CNIConfig {
         };
 
         // Execute plugin with VERSION command
-        match self.exec.exec_plugins(plugin_path, &[], environ.to_env()) {
+        match self
+            .exec
+            .exec_plugins(plugin_path, &[], environ.to_env())
+            .and_then(|val| {
+                val.ok_or(Box::new(CNIError::ExecuteError(
+                    "got empty result for VERSION command".to_string(),
+                )))
+            }) {
             Ok(version_value) => {
                 if let Some(supported_versions) = version_value.get("supportedVersions") {
                     if let Some(versions_array) = supported_versions.as_array() {
