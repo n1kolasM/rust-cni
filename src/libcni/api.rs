@@ -177,7 +177,7 @@ impl CNIConfig {
         debug!("Caching network result to {}", result_path.display());
 
         let result_json = result.get_json();
-        let result_bytes = result_json.dump().as_bytes().to_vec();
+        let result_bytes = serde_json::to_vec(&result_json).unwrap();
 
         let mut file =
             fs::File::create(result_path).map_err(|e| Box::new(CNIError::Io(Box::new(e))))?;
@@ -239,30 +239,34 @@ impl CNIConfig {
     ) -> Result<NetworkConfig, String> {
         debug!("Building new network config for {name}");
 
-        let mut json_object = match json::parse(String::from_utf8_lossy(&orig.bytes).as_ref()) {
-            Ok(obj) => obj,
-            Err(e) => return Err(format!("Failed to parse network config: {e}")),
+        let mut json_value: serde_json::Value =
+            match serde_json::from_str(String::from_utf8_lossy(&orig.bytes).as_ref()) {
+                Ok(obj) => obj,
+                Err(e) => return Err(format!("Failed to parse network config: {e}")),
+            };
+
+        let Some(json_obj) = json_value.as_object_mut() else {
+            return Err("Network config is not a json object".to_string());
         };
 
         // Insert required fields
-        if let Err(e) = json_object.insert("name", name) {
-            return Err(format!("Failed to insert name: {e}"));
-        }
+        json_obj.insert("name".to_string(), name.into());
 
-        if let Err(e) = json_object.insert("cniVersion", cni_version) {
-            return Err(format!("Failed to insert cniVersion: {e}"));
-        }
+        json_obj.insert("cniVersion".to_string(), cni_version.into());
 
         // Insert previous result (if provided)
         if let Some(prev_result) = prev_result {
             let prev_json = prev_result.get_json();
-            debug!("Adding prevResult to config: {}", prev_json.dump());
-            if let Err(e) = json_object.insert("prevResult", prev_json) {
-                return Err(format!("Failed to insert prevResult: {e}"));
-            }
+            debug!(
+                "Adding prevResult to config: {}",
+                serde_json::to_string(&prev_json).unwrap()
+            );
+            json_obj.insert("prevResult".to_string(), prev_json);
         }
 
-        let new_bytes = json_object.dump().as_bytes().to_vec();
+        let Ok(new_bytes) = serde_json::to_vec(&json_value) else {
+            return Err("Failed to serialize config".to_string());
+        };
         debug!("Built new config: {}", String::from_utf8_lossy(&new_bytes));
 
         // Create new config with updated bytes

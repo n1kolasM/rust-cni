@@ -94,7 +94,8 @@ impl Network {
             .get_network_list_cached_result(self.config.clone(), ns.config(self.ifname.clone()))
         {
             Ok(result) => {
-                let stats_json = result.get_json().dump();
+                let stats_json = serde_json::to_string(&result.get_json())
+                    .map_err(|e| format!("Failed to get stats json: {e}"))?;
                 debug!("Network stats: {stats_json}");
                 Ok(stats_json)
             }

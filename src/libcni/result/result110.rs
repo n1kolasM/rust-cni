@@ -1,7 +1,6 @@
 // Copyright (c) 2024 https://github.com/divinerapier/cni-rs
 use std::io::stdout;
 
-use json::JsonValue;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string;
 
@@ -84,9 +83,8 @@ impl APIResult for Result {
         Ok(())
     }
 
-    fn get_json(&self) -> JsonValue {
-        let js_string = to_string(&self).unwrap();
-        json::parse(&js_string).unwrap()
+    fn get_json(&self) -> serde_json::Value {
+        serde_json::to_value(self).unwrap()
     }
 
     fn clone_box(&self) -> Box<dyn APIResult> {
