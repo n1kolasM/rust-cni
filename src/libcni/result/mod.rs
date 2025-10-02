@@ -1,6 +1,8 @@
 // Copyright (c) 2024 https://github.com/divinerapier/cni-rs
 use json::JsonValue;
 
+pub mod result031;
+pub mod result040;
 pub mod result100;
 pub mod result110;
 
