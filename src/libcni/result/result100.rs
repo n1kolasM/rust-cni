@@ -10,7 +10,7 @@ use super::APIResult;
 
 // const IMPLEMENTED_SPEC_VERSION: &'static str = "1.0.0";
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Interface {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -20,7 +20,7 @@ pub struct Interface {
     pub sandbox: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IPConfig {
     #[serde(rename = "interface")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -33,7 +33,7 @@ pub struct IPConfig {
     pub gateway: Option<std::net::IpAddr>,
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct Result {
     #[serde(rename = "cniVersion")]
     #[serde(skip_serializing_if = "Option::is_none")]

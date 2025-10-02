@@ -44,7 +44,7 @@ pub struct NetConfList {
     pub plugins: Vec<NetworkConfig>,
 }
 
-#[derive(Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
 pub struct DNS {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nameservers: Option<Vec<String>>,
@@ -56,7 +56,7 @@ pub struct DNS {
     pub options: Option<Vec<String>>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Route {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dst: Option<ipnetwork::IpNetwork>,

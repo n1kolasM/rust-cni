@@ -10,7 +10,7 @@ use super::APIResult;
 
 // const IMPLEMENTED_SPEC_VERSION: &'static str = "1.1.0";
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Interface {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -26,7 +26,7 @@ pub struct Interface {
     pub pci_id: Option<String>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Route {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dst: Option<ipnetwork::IpNetwork>,
@@ -44,7 +44,7 @@ pub struct Route {
     pub scope: Option<u32>,
 }
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct Result {
     #[serde(rename = "cniVersion")]
     #[serde(skip_serializing_if = "Option::is_none")]

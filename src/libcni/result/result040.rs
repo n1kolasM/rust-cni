@@ -9,7 +9,7 @@ use crate::libcni::CNIError;
 
 use super::APIResult;
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct Result {
     #[serde(rename = "cniVersion")]
     #[serde(skip_serializing_if = "Option::is_none")]
