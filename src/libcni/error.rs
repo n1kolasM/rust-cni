@@ -129,7 +129,7 @@ pub enum CNIError {
     NoConfigsFound(String),
     #[error("execute CNI error {0}")]
     ExecuteError(String),
-    #[error("plugin error")]
+    #[error("plugin error: {0}")]
     PluginError(PluginError),
     #[error("Invalid Configuration: {0}")]
     Config(String),
