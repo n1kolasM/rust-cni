@@ -105,7 +105,7 @@ impl std::fmt::Display for PluginErrorCode {
 #[derive(Debug, Clone, Deserialize, Serialize, Error)]
 pub struct PluginError {
     #[serde(rename = "cniVersion")]
-    cni_version: String,
+    cni_version: Option<String>,
     code: PluginErrorCode,
     msg: String,
     details: Option<String>,
